@@ -21,9 +21,16 @@ export default function App() {
   const [toDos, setToDos] = useState({});
   useEffect(() => {
     loadToDos();
+    btnCheck();
   }, []);
-  const travel = () => setWorking(false);
-  const work = () => setWorking(true);
+  const travel = () => {
+    setWorking(false);
+    setBtn("false");
+  };
+  const work = () => {
+    setWorking(true);
+    setBtn("true");
+  };
   const onChangeText = (payload) => setText(payload);
   const saveToDos = async (toSave) => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -32,12 +39,18 @@ export default function App() {
     const s = await AsyncStorage.getItem(STORAGE_KEY);
     setToDos(JSON.parse(s));
   };
+  const setBtn = async (trueOrFalse) => {
+    await AsyncStorage.setItem("btn", trueOrFalse);
+  };
+  const btnCheck = async () => {
+    const btnLocate = await AsyncStorage.getItem("btn");
+    setWorking(JSON.parse(btnLocate));
+  };
 
   const addToDo = () => {
     if (text === "") {
       return;
     }
-    // save to do
     const newToDos = { ...toDos, [Date.now()]: { text, working } };
     setToDos(newToDos);
     saveToDos(newToDos);
