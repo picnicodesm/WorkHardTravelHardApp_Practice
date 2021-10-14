@@ -9,7 +9,8 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Fontisto } from "@expo/vector-icons";
+import { Fontisto, Entypo } from "@expo/vector-icons";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "./colors";
 
@@ -18,8 +19,10 @@ const STORAGE_KEY = "@toDos";
 export default function App() {
   const [working, setWorking] = useState(true);
   const [text, setText] = useState("");
+  const [subText, setSubText] = useState("");
   const [toDos, setToDos] = useState({});
   const [finished, setFinished] = useState(false);
+  const [editor, setEditor] = useState(false);
   useEffect(() => {
     loadToDos();
     btnCheck();
@@ -33,6 +36,7 @@ export default function App() {
     setBtn("true");
   };
   const onChangeText = (payload) => setText(payload);
+  const onSubChangeText = (payload) => setSubText(payload);
   const saveToDos = async (toSave) => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   };
@@ -52,7 +56,10 @@ export default function App() {
     if (text === "") {
       return;
     }
-    const newToDos = { ...toDos, [Date.now()]: { text, working, finished } };
+    const newToDos = {
+      ...toDos,
+      [Date.now()]: { text, working, finished, editor },
+    };
     setToDos(newToDos);
     saveToDos(newToDos);
     setText("");
@@ -81,6 +88,78 @@ export default function App() {
     setToDos(newToDos);
     saveToDos(newToDos);
   };
+  const editToDo = (key) => {
+    const newToDos = { ...toDos };
+    newToDos[key].text = subText;
+    setToDos(newToDos);
+    saveToDos(newToDos);
+    setSubText("");
+    editText(key);
+  };
+  const editText = (key) => {
+    const newToDos = { ...toDos };
+    if (newToDos[key].editor) {
+      newToDos[key].editor = false;
+    } else {
+      newToDos[key].editor = true;
+    }
+    setToDos(newToDos);
+    saveToDos(newToDos);
+    console.log(newToDos[key].editor);
+  };
+  const textEdit = (key) => {
+    if (toDos[key].editor) {
+      return (
+        <TextInput
+          onSubmitEditing={() => editToDo(key)}
+          onChangeText={onSubChangeText}
+          returnKeyType="done"
+          value={subText}
+          placeholder="edit your todo"
+          style={styles.subInput}
+        />
+      );
+    } else {
+      return paintText(key);
+    }
+  };
+  const paintText = (key) => {
+    return (
+      <Text
+        style={{
+          ...styles.toDoText,
+          textDecorationLine: toDos[key].finished ? "line-through" : "none",
+        }}
+      >
+        {toDos[key].text}
+      </Text>
+    );
+  };
+  const showList = (key) => {
+    return (
+      <View style={styles.toDo} key={key}>
+        {textEdit(key)}
+        <View style={styles.buttons}>
+          <TouchableOpacity onPress={() => editText(key)} style={styles.button}>
+            <Entypo name="pencil" size={22} color={theme.toDoBg} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => finishedToDo(key)}
+            style={styles.button}
+          >
+            <Fontisto name="check" size={18} color={theme.toDoBg} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => deleteToDo(key)}
+            style={styles.button}
+          >
+            <Fontisto name="trash" size={18} color={theme.toDoBg} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -114,34 +193,7 @@ export default function App() {
       />
       <ScrollView>
         {Object.keys(toDos).map((key) =>
-          toDos[key].working === working ? (
-            <View style={styles.toDo} key={key}>
-              <Text
-                style={{
-                  ...styles.toDoText,
-                  textDecorationLine: toDos[key].finished
-                    ? "line-through"
-                    : "none",
-                }}
-              >
-                {toDos[key].text}
-              </Text>
-              <View style={styles.buttons}>
-                <TouchableOpacity
-                  onPress={() => finishedToDo(key)}
-                  style={styles.button}
-                >
-                  <Fontisto name="check" size={18} color={theme.toDoBg} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => deleteToDo(key)}
-                  style={styles.button}
-                >
-                  <Fontisto name="trash" size={18} color={theme.toDoBg} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : null
+          toDos[key].working === working ? showList(key) : null
         )}
       </ScrollView>
     </View>
@@ -170,6 +222,12 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginVertical: 20,
     fontSize: 18,
+  },
+  subInput: {
+    backgroundColor: "white",
+    width: "70%",
+    borderRadius: 30,
+    paddingHorizontal: 20,
   },
   toDo: {
     backgroundColor: theme.gray,
